@@ -1,230 +1,31 @@
-    #include<reg51.h>
-    #include<stdio.h>
-    #include<string.h>
+# Introduction:
+A GPS module is a device that uses Global Positioning System to
+determine the location of a vehicle or person. GPS receivers are used to
+provide reliable navigation, positioning and timing services to the users at
+anytime and anywhere on the earth. This Global positioning system uses
+24 to 32 satellites to provide the data to the receivers. GPS has become
+very important for worldwide navigation and it is useful for land surveying,
+way marking, map-making, tracking and surveillance commerce and
+scientific uses.
 
-
-    sfr LCD_Port=0x90;		/* P1 port as data port */
-    sbit rs=P1^0;			/* Register select pin */
-    sbit rw=P1^1;			/* Read/Write pin */
-    sbit en=P1^2;			/* Enable pin */
-
-
-     char str;
-     char Charin=0;
-    char namegps[7], name1gps[7] = "GPRMC,",gpsdat[63];
-    char name2gps[7] = "GPGGA,";
-
-    char msggps , checkgps;
-    int h;
-    unsigned char f;
-    void delay(unsigned int count)    		
-    {
-         int i,j;
-         for(i=0;i<count;i++)
-         for(j=0;j<112;j++);
-    }
-    void LCD_Command (char cmnd)	/* LCD16x2 command funtion */
-    {
-      LCD_Port =(LCD_Port & 0x0F) | (cmnd & 0xF0);/* Send upper nibble */
-      rs=0;			/* Command reg. */
-      rw=0;			/* Write operation */
-      en=1; 
-      delay(1);
-      en=0;
-      delay(2);
-
-      LCD_Port = (LCD_Port & 0x0F) | (cmnd << 4);/* Send lower nibble */
-      en=1;			/* Enable pulse */
-      delay(1);
-      en=0;
-      delay(5);
-    }
-
-    void LCD_Char (char char_data)  /* LCD data write function */
-    {
-      LCD_Port =(LCD_Port & 0x0F) | (char_data & 0xF0);/* Send upper nibble */
-      rs=1;  			/*Data reg.*/
-      rw=0;  			/*Write operation*/
-      en=1;  
-      delay(1);
-      en=0;
-      delay(2);
-
-      LCD_Port = (LCD_Port & 0x0F) | (char_data << 4);/* Send lower nibble */
-      en=1;  			/* Enable pulse */
-      delay(1);
-      en=0;
-      delay(5);
-
-    }
-
-    void LCD_String (char *str)	/* Send string to LCD function */
-    {
-      int i;
-      for(i=0;str[i]!=0;i++)  /* Send each char of string till the NULL */
-      {
-        LCD_Char (str[i]);  /* Call LCD data write */
-      }
-    }
-
-    void LCD_String_xy (char row, char pos, char *str)  /* Send string to LCD function */
-    {
-      if (row == 0)
-      LCD_Command((pos & 0x0F)|0x80);
-      else if (row == 1)
-      LCD_Command((pos & 0x0F)|0xC0);
-      LCD_String(str);  	/* Call LCD string function */
-    }
-
-    void LCD_Init (void)		/* LCD Initialize function */
-    {
-      delay(20);		/* LCD Power ON Initialization time >15ms */
-      LCD_Command (0x02);	/* 4bit mode */
-      LCD_Command (0x28);	/* Initialization of 16X2 LCD in 4bit mode */
-      LCD_Command (0x0C);	/* Display ON Cursor OFF */
-      LCD_Command (0x06);	/* Auto Increment cursor */
-      LCD_Command (0x01);	/* clear display */
-      LCD_Command (0x80);	/* cursor at home position */
-    }
-
-
-    void Serialwrite(char byte)
-    {
-      SBUF=byte;
-      while(!TI);
-      TI=0;
-    }
-
-    void Serialprintln(char *p)
-    {
-      while(*p)
-      {
-        Serialwrite(*p);
-        p++;
-      }
-      Serialwrite(0x0d);
-    }
-
-    void Serialbegin()
-    {
-       TMOD=0x20;
-       SCON=0x50;
-       TH1=0xfd;
-       TR1=1;
-    }
-    unsigned char rx()
-    {
-        while(RI==0);
-        RI=0;
-        return SBUF;
-
-    }
-
-
-    void main()
-    {
-      P2=0x00;
-      Serialbegin();
-      LCD_Init();
-      LCD_Command(0x80);
-      LCD_String("LAT:");
-      LCD_Command(0x84);
-      Serialprintln("System Ready...");
-      delay(50);
-      while(1)
-      {
-        while(!RI);
-		 
-    Charin=SBUF;
-    str=Charin;
-		msggps= rx();
-        if(msggps=='$') {
-            EA = 0;
-            for(f=0;f<=5;f++) {
-                namegps[f]=rx();
-							Serialwrite(namegps[f]);
-            }
-						
-				Serialprintln("\n");
-						Serialprintln("\n");
-					 checkgps=strcmp(namegps,name1gps);
-          if(checkgps==0) {
-                for(f=0;f<=62;f++) {
-                    gpsdat[f]=rx();   
-										Serialwrite(gpsdat[f]);
-                }
-								
-						Serialprintln("\n");
-						Serialprintln("\n");		
-					 for(h=9;h<=17;h++) {
-                    Serialwrite(gpsdat[h]);
-										LCD_Char(gpsdat[h]);
-										
-                }
-					  LCD_Char(223);
-                LCD_Char(' ');
-                LCD_Char('N');
-							 LCD_Command(0xc0);
-								LCD_String("LON:");	
-						LCD_Command(0xc4);
-					 Serialprintln("\n");
-						Serialprintln("\n");
-						
-					 for(h=21;h<=30;h++) {
-                    Serialwrite(gpsdat[h]);
-										LCD_Char(gpsdat[h]);
-                }
-								 LCD_Char(223);
-             
-                LCD_Char('E');
-						Serialprintln("\n");
-								Serialprintln("\n");
-					}
-				/*	else
-					{
-						Serialprintln("\n");
-						Serialprintln("\n");
-					 checkgps=strcmp(namegps,name1gps);
-          if(checkgps==0) {
-                for(f=0;f<=62;f++) {
-                    gpsdat[f]=rx();   
-										Serialwrite(gpsdat[f]);
-                }
-								
-						Serialprintln("\n");
-						Serialprintln("\n");		
-					 for(h=9;h<=17;h++) {
-                    Serialwrite(gpsdat[h]);
-										LCD_Char(gpsdat[h]);
-										
-                }
-					  LCD_Char(223);
-                LCD_Char(' ');
-                LCD_Char('N');
-							 LCD_Command(0xc0);
-		LCD_String("LAT:");	
-						LCD_Command(0xc4);
-					 Serialprintln("\n");
-						Serialprintln("\n");
-						
-					 for(h=21;h<=30;h++) {
-                    Serialwrite(gpsdat[h]);
-										LCD_Char(gpsdat[h]);
-                }
-								 LCD_Char(223);
-                LCD_Char(' ');
-                LCD_Char('E');
-						Serialprintln("\n");
-								Serialprintln("\n");
-					}
-						
-						
-						
-					}
-					*/
-					
-				}
-    RI=0;
-    str=0;
-  }
-}
+# Circuit Components:
+• at89c51 controller
+• Programming board
+• programming cable
+• 12V DC battery or adaptor
+• max232 IC
+• 16*2 LCD
+• GPS module
+• Pot 10k
+• 12 MHz crystal
+• Electrolytic capacitors – 1uF (4), 10u
+• Ceramic capacitors – 33pF (2)
+• Resistor – 10k
+# Working:
+GPS module calculates the position by reading the signals that are
+transmitted by the satellites. Each satellite transmits the messages
+continuously which contains time was sent. GPS receiver measures the
+distance to each satellite based on the arrival time of each message. This
+information is used to calculate the position of the GPS receiver. The
+received raw data is converted for the user as LATITUDE, LONGITUDE,
+ALTITUDE, SPEED and TIME.
