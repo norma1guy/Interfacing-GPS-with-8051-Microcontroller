@@ -8,6 +8,10 @@ very important for worldwide navigation and it is useful for land surveying,
 way marking, map-making, tracking and surveillance commerce and
 scientific uses.
 
+# Circuit
+![4](https://user-images.githubusercontent.com/49033890/131826048-13cbd9c8-526a-4086-8339-d18b45d37163.png)
+
+
 # Circuit Components:
 • at89c51 controller
 • Programming board
